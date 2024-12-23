@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 import { db } from "../lib/firebase";
-import { collection, getDocs } from "firebase/firestore";
+import { collection, getDocs, DocumentData } from "firebase/firestore";
 import Link from "next/link";
 import { Heart, Star } from "lucide-react";
 
@@ -14,31 +14,39 @@ interface Product {
   category?: string;
 }
 
-export default function FurnitureProducts() {
-  const [furniture, setFurniture] = useState<Product[]>([]);
+export default function ElectronicsProducts() {
+  const [clothing, setClothing] = useState<Product[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const fetchFurniture = async () => {
+    const FurnitureProducts = async () => {
       try {
         const querySnapshot = await getDocs(collection(db, "products"));
-        const productsList = querySnapshot.docs
-          .map((doc) => ({
-            id: doc.id,
-            ...doc.data(),
-          }))
+        const productsList: Product[] = querySnapshot.docs
+          .map((doc) => {
+            const data = doc.data() as DocumentData;
+            return {
+              id: doc.id,
+              productName: data.productName || "",
+              imageUrl: data.imageUrl || "",
+              price: typeof data.price === "number" ? data.price : 0,
+              rating: typeof data.rating === "number" ? data.rating : 0,
+              category: data.category || "",
+            } as Product;
+          })
           .filter((product) => product.category?.toLowerCase() === "furniture");
 
-        setFurniture(productsList as Product[]);
+        setClothing(productsList);
       } catch (err) {
-        setError("Error fetching furniture products");
+        console.error(err);
+        setError("Error fetching electronics products");
       } finally {
         setLoading(false);
       }
     };
 
-    fetchFurniture();
+    FurnitureProducts();
   }, []);
 
   if (loading) return <div className="text-center text-lg font-semibold">Loading...</div>;
@@ -48,7 +56,7 @@ export default function FurnitureProducts() {
     <div className="font-[sans-serif] p-4 mx-auto lg:max-w-7xl sm:max-w-full">
       <h2 className="text-3xl font-bold text-gray-800 mb-8">Furniture Products</h2>
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 max-xl:gap-3 gap-4">
-        {furniture.map((product) => (
+        {clothing.slice(0, 4).map((product) => (
           <div
             key={product.id}
             className="bg-white rounded-xl p-3 cursor-pointer hover:-translate-y-2 transition-all relative"
@@ -67,7 +75,7 @@ export default function FurnitureProducts() {
 
             <div>
               <h3 className="text-md font-bold text-gray-800">
-                {product.productName?.length > 25
+                {product.productName.length > 25
                   ? `${product.productName.slice(0, 25)}...`
                   : product.productName || "Product Title"}
               </h3>
@@ -85,7 +93,7 @@ export default function FurnitureProducts() {
                 ))}
               </div>
               <h4 className="text-sm text-gray-800 font-semibold mt-2">
-                ${product.price || "N/A"}
+                ${product.price.toFixed(2)}
               </h4>
               <Link
                 href={`/${product.id}`}
