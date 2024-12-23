@@ -1,60 +1,62 @@
 "use client";
 import { useState, useEffect } from "react";
-import { getDocs, collection } from "firebase/firestore";
-import { db } from "@/app/lib/firebase";
+import { db } from "../lib/firebase";
+import { collection, getDocs, DocumentData } from "firebase/firestore";
 import Link from "next/link";
 import { Heart, Star } from "lucide-react";
 
 interface Product {
   id: string;
   productName: string;
-  imageUrl: string;
+  imageUrl?: string;
   price: number;
-  rating: number;
-  category: string;
+  rating?: number;
+  category?: string;
 }
 
 export default function ElectronicsProducts() {
-  const [electronics, setElectronics] = useState<Product[]>([]);
+  const [clothing, setClothing] = useState<Product[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const fetchElectronics = async () => {
+    const fetchClothing = async () => {
       try {
         const querySnapshot = await getDocs(collection(db, "products"));
-        const productsList = querySnapshot.docs
-          .map((doc) => ({
-            id: doc.id,
-            ...doc.data(),
-          }))
-          .filter(
-            (product) => product.category?.toLowerCase() === "electronics"
-          );
-        setElectronics(productsList);
+        const productsList: Product[] = querySnapshot.docs
+          .map((doc) => {
+            const data = doc.data() as DocumentData;
+            return {
+              id: doc.id,
+              productName: data.productName || "",
+              imageUrl: data.imageUrl || "",
+              price: typeof data.price === "number" ? data.price : 0,
+              rating: typeof data.rating === "number" ? data.rating : 0,
+              category: data.category || "",
+            } as Product;
+          })
+          .filter((product) => product.category?.toLowerCase() === "electronics");
+
+        setClothing(productsList);
       } catch (err) {
+        console.error(err);
         setError("Error fetching electronics products");
       } finally {
         setLoading(false);
       }
     };
 
-    fetchElectronics();
+    fetchClothing();
   }, []);
 
-  if (loading)
-    return <div className="text-center text-lg font-semibold">Loading...</div>;
+  if (loading) return <div className="text-center text-lg font-semibold">Loading...</div>;
   if (error) return <div className="text-center text-red-500">{error}</div>;
-
-  const limitedElectronics = electronics.slice(0, 4);
 
   return (
     <div className="font-[sans-serif] p-4 mx-auto lg:max-w-7xl sm:max-w-full">
-      <h2 className="text-3xl font-bold text-gray-800 mb-8">
-        Electronics Products
-      </h2>
+      <h2 className="text-3xl font-bold text-gray-800 mb-8">Electronics Products</h2>
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 max-xl:gap-3 gap-4">
-        {limitedElectronics.map((product) => (
+        {clothing.slice(0, 4).map((product) => (
           <div
             key={product.id}
             className="bg-white rounded-xl p-3 cursor-pointer hover:-translate-y-2 transition-all relative"
@@ -73,7 +75,7 @@ export default function ElectronicsProducts() {
 
             <div>
               <h3 className="text-md font-bold text-gray-800">
-                {product.productName?.length > 25
+                {product.productName.length > 25
                   ? `${product.productName.slice(0, 25)}...`
                   : product.productName || "Product Title"}
               </h3>
@@ -91,11 +93,11 @@ export default function ElectronicsProducts() {
                 ))}
               </div>
               <h4 className="text-sm text-gray-800 font-semibold mt-2">
-                ${product.price || "N/A"}
+                ${product.price.toFixed(2)}
               </h4>
               <Link
                 href={`/${product.id}`}
-                className="h-[35px] flex justify-center items-center mt-3  text-center text-white bg-blue-500 px-3 py-1 text-sm rounded hover:bg-blue-600 transition-all"
+                className="h-[35px] flex justify-center items-center mt-3 text-center text-white bg-blue-500 px-3 py-1 text-sm rounded hover:bg-blue-600 transition-all"
               >
                 View Product
               </Link>
