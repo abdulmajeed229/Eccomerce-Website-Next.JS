@@ -35,7 +35,7 @@ export default function ClothingProducts() {
               category: data.category || "",
             } as Product;
           })
-          .filter((product) => product.category.toLowerCase() === "clothing");
+          .filter((product) => product.category?.toLowerCase() === "clothing");
 
         setClothing(productsList);
       } catch (err) {
