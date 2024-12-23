@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 import { db } from "../lib/firebase";
-import { collection, getDocs } from "firebase/firestore";
+import { collection, getDocs, DocumentData } from "firebase/firestore";
 import Link from "next/link";
 import { Heart, Star } from "lucide-react";
 
@@ -23,15 +23,23 @@ export default function ClothingProducts() {
     const fetchClothing = async () => {
       try {
         const querySnapshot = await getDocs(collection(db, "products"));
-        const productsList = querySnapshot.docs
-          .map((doc) => ({
-            id: doc.id,
-            ...doc.data(),
-          }))
-          .filter((product) => product.category?.toLowerCase() === "clothing");
+        const productsList: Product[] = querySnapshot.docs
+          .map((doc) => {
+            const data = doc.data() as DocumentData;
+            return {
+              id: doc.id,
+              productName: data.productName || "",
+              imageUrl: data.imageUrl || "",
+              price: typeof data.price === "number" ? data.price : 0,
+              rating: typeof data.rating === "number" ? data.rating : 0,
+              category: data.category || "",
+            } as Product;
+          })
+          .filter((product) => product.category.toLowerCase() === "clothing");
 
-        setClothing(productsList as Product[]);
+        setClothing(productsList);
       } catch (err) {
+        console.error(err);
         setError("Error fetching clothing products");
       } finally {
         setLoading(false);
@@ -67,7 +75,7 @@ export default function ClothingProducts() {
 
             <div>
               <h3 className="text-md font-bold text-gray-800">
-                {product.productName?.length > 25
+                {product.productName.length > 25
                   ? `${product.productName.slice(0, 25)}...`
                   : product.productName || "Product Title"}
               </h3>
@@ -85,7 +93,7 @@ export default function ClothingProducts() {
                 ))}
               </div>
               <h4 className="text-sm text-gray-800 font-semibold mt-2">
-                ${product.price || "N/A"}
+                ${product.price.toFixed(2)}
               </h4>
               <Link
                 href={`/${product.id}`}
